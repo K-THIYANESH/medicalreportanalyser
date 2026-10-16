@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Medical Report Analyzer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;700&family=Cormorant+Garamond:wght@300;400;500&display=swap" rel="stylesheet" />
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #f5f2ee; --surface: #ffffff; --ink: #1a1714; --muted: #7a746e;
+            --accent: #b5601a; --accent-light: #f0e8e0; --border: #ddd8d2;
+            --radius: 4px; --shadow: 0 2px 24px rgba(26, 23, 20, 0.07);
+            --transition: 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+            --success: #2d6a4f; --warn: #c0392b;
+        }
+        body {
+            font-family: "DM Sans", sans-serif; background: var(--bg); color: var(--ink);
+            min-height: 100vh; display: grid; place-items: center; padding: 2rem 1rem;
+        }
+        .card {
+            background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+            box-shadow: var(--shadow); width: 100%; max-width: 820px; overflow: hidden;
+        }
+        .card-header {
+            padding: 2.5rem; border-bottom: 1px solid var(--border); position: relative;
+        }
+        .card-header::before {
+            content: ""; position: absolute; inset: 0 0 auto 0; height: 3px;
+            background: linear-gradient(90deg, var(--accent), #e08c4a);
+        }
+        .eyebrow {
+            font-size: 0.7rem; font-weight: 500; letter-spacing: 0.14em;
+            text-transform: uppercase; color: var(--accent); margin-bottom: 0.6rem;
+        }
+        h1 { font-family: "Cormorant Garamond", serif; font-size: 2.4rem; font-weight: 300; line-height: 1.15; }
+        .subtitle { margin-top: 0.6rem; color: var(--muted); font-size: 0.9rem; line-height: 1.6; }
+        .card-body { padding: 2rem 2.5rem 2.5rem; }
+        .field { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.5rem; }
+        label {
+            font-size: 0.78rem; font-weight: 500; letter-spacing: 0.05em;
+            text-transform: uppercase; color: var(--muted);
+        }
+        input[type="file"] {
+            width: 100%; background: var(--bg); border: 1.5px solid var(--border);
+            border-radius: var(--radius); padding: 0.9rem; cursor: pointer; transition: all var(--transition);
+        }
+        input[type="file"]:hover { border-color: var(--accent); }
+        .hint { font-size: 0.82rem; color: var(--muted); margin-top: 0.3rem; }
+        .btn {
+            position: relative; width: 100%; padding: 0.9rem 1.5rem;
+            font-family: "DM Sans", sans-serif; font-size: 0.88rem; font-weight: 500;
+            letter-spacing: 0.06em; text-transform: uppercase; color: #fff; background: var(--accent);
+            border: none; border-radius: var(--radius); cursor: pointer; transition: all var(--transition);
+            display: flex; justify-content: center; align-items: center;
+        }
+        .btn:hover { background: #9e5016; transform: translateY(-1px); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .btn-spinner { position: absolute; opacity: 0; }
+        .btn.loading .btn-text { opacity: 0; }
+        .btn.loading .btn-spinner { opacity: 1; }
+        .ring {
+            width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .results { display: none; margin-top: 2rem; }
+        .results.visible { display: block; }
+        .section {
+            background: var(--bg); border: 1.5px solid var(--border); border-radius: var(--radius);
+            padding: 1.2rem; margin-bottom: 1rem;
+        }
+        .section h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 0.8rem; }
+        .biomarker-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.8rem; }
+        .biomarker-item {
+            background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0.8rem;
+        }
+        .biomarker-item .name { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+        .biomarker-item .value { font-size: 1.4rem; font-weight: 500; margin-top: 0.2rem; }
+        .biomarker-item .value.missing { color: var(--muted); font-size: 1rem; font-style: italic; }
+        .risk-list { list-style: none; }
+        .risk-list li {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0.5rem 0; border-bottom: 1px solid var(--border);
+        }
+        .risk-list li:last-child { border-bottom: none; }
+        .risk-bar-wrap { flex: 1; margin: 0 1rem; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+        .risk-bar { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.5s ease; }
+        .summary-text { line-height: 1.7; white-space: pre-wrap; }
+        .error { color: var(--warn); }
+        .loading-text { color: var(--accent); }
+        .file-list { font-size: 0.85rem; color: var(--muted); margin-top: 0.5rem; }
+        @media (max-width: 480px) {
+            .card-header, .card-body { padding-left: 1.3rem; padding-right: 1.3rem; }
+            h1 { font-size: 2rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="card-header">
+            <div class="eyebrow">AI Health Analysis</div>
+            <h1>Medical Report Analyzer</h1>
+            <p class="subtitle">
+                Upload a blood test report as PDF or multiple images. The system extracts CBC biomarkers via OCR,
+                runs ML-based disease risk prediction, and generates a patient-friendly AI summary.
+            </p>
+        </div>
+        <div class="card-body">
+            <div class="field">
+                <label>Upload Report</label>
+                <input type="file" id="reportFiles" accept=".pdf,image/*" multiple />
+                <p class="hint">Single PDF or multiple JPG/PNG images (one page per image).</p>
+                <div id="fileList" class="file-list"></div>
+            </div>
+
+            <button class="btn" id="analyzeBtn" onclick="uploadReport()">
+                <span class="btn-text">Analyze Report</span>
+                <span class="btn-spinner"><span class="ring"></span></span>
+            </button>
+
+            <div id="statusBox" class="field" style="margin-top: 1.5rem; display: none;">
+                <div id="statusText" class="loading-text"></div>
+            </div>
+
+            <div id="results" class="results">
+                <div class="section">
+                    <h2>Extracted Biomarkers</h2>
+                    <div id="biomarkers" class="biomarker-grid"></div>
+                </div>
+
+                <div class="section" id="mlSection">
+                    <h2>ML Disease Risk</h2>
+                    <ul id="riskList" class="risk-list"></ul>
+                </div>
+
+                <div class="section">
+                    <h2>AI Summary</h2>
+                    <div id="summaryBox" class="summary-text"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById("reportFiles");
+        fileInput.addEventListener("change", updateFileList);
+
+        function updateFileList() {
+            const list = document.getElementById("fileList");
+            const files = fileInput.files;
+            if (!files.length) { list.textContent = ""; return; }
+            list.textContent = Array.from(files).map(f => f.name).join(", ");
+        }
+
+        function renderBiomarkers(data) {
+            const container = document.getElementById("biomarkers");
+            const labels = {
+                hemoglobin: "Hemoglobin (g/dL)",
+                rbc: "RBC (mill/cumm)",
+                wbc: "WBC (/cumm)",
+                platelets: "Platelets (/cumm)"
+            };
+            container.innerHTML = "";
+            for (const [key, label] of Object.entries(labels)) {
+                const val = data[key];
+                container.innerHTML += `
+                    <div class="biomarker-item">
+                        <div class="name">${label}</div>
+                        <div class="value ${val == null ? 'missing' : ''}">${val != null ? val : 'Not detected'}</div>
+                    </div>`;
+            }
+        }
+
+        function renderMLPredictions(predictions) {
+            const section = document.getElementById("mlSection");
+            const list = document.getElementById("riskList");
+            if (!predictions) {
+                section.style.display = "none";
+                return;
+            }
+            section.style.display = "block";
+            list.innerHTML = "";
+            for (const [disease, prob] of Object.entries(predictions)) {
+                list.innerHTML += `
+                    <li>
+                        <span>${disease}</span>
+                        <div class="risk-bar-wrap"><div class="risk-bar" style="width: ${prob}%"></div></div>
+                        <span>${prob}%</span>
+                    </li>`;
+            }
+        }
+
+        async function uploadReport() {
+            const files = fileInput.files;
+            if (!files.length) { alert("Please select at least one file."); return; }
+
+            const btn = document.getElementById("analyzeBtn");
+            const statusBox = document.getElementById("statusBox");
+            const statusText = document.getElementById("statusText");
+            const results = document.getElementById("results");
+
+            btn.classList.add("loading");
+            btn.disabled = true;
+            statusBox.style.display = "block";
+            statusText.innerHTML = "<span class='loading-text'>Running OCR, ML analysis, and AI summary...</span>";
+            results.classList.remove("visible");
+
+            const formData = new FormData();
+            for (const file of files) {
+                formData.append("files", file);
+            }
+
+            try {
+                const response = await fetch("/api/analyze", { method: "POST", body: formData });
+                const result = await response.json();
+
+                if (!result.success) {
+                    statusText.innerHTML = `<span class='error'>${result.error || 'Analysis failed.'}</span>`;
+                    if (result.data) {
+                        results.classList.add("visible");
+                        renderBiomarkers(result.data);
+                        renderMLPredictions(result.ml_predictions);
+                        document.getElementById("summaryBox").textContent = result.summary || "Summary unavailable.";
+                    }
+                    return;
+                }
+
+                statusBox.style.display = "block";
+                if (result.error) {
+                    statusText.innerHTML = `<span class='error'>AI summary unavailable: ${result.error}</span>`;
+                } else {
+                    statusBox.style.display = "none";
+                }
+                results.classList.add("visible");
+                renderBiomarkers(result.data);
+                renderMLPredictions(result.ml_predictions);
+                document.getElementById("summaryBox").textContent = result.summary || "Summary unavailable.";
+            } catch (error) {
+                statusText.innerHTML = "<span class='error'>Failed to connect to the server.</span>";
+                console.error(error);
+            } finally {
+                btn.classList.remove("loading");
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

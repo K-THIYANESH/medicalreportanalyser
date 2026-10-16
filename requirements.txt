@@ -1,0 +1,28 @@
+# Requires Python 3.10–3.13 (NOT 3.14+). Use: py -3.10 -m venv .venv
+# PaddlePaddle must be installed separately — see setup.ps1 or README.
+
+# Web framework
+fastapi>=0.110.0
+uvicorn[standard]>=0.27.0
+python-multipart>=0.0.9
+
+# Data validation
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+
+# OCR & PDF (PaddleOCR installed via setup script)
+pymupdf>=1.24.0
+opencv-python-headless>=4.0.0
+
+# ML
+pandas>=2.0.0
+scikit-learn>=1.4.0
+numpy>=1.26.0
+
+# LLM
+ollama>=0.4.0
+httpx>=0.27.0
+
+# Config & dev
+python-dotenv>=1.0.0
+pytest>=8.0.0
